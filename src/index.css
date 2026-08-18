@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  }
+
+  /* Editorial Serif for Headers and Column body emphasis */
+  .font-serif-kr {
+    font-family: 'Noto Serif KR', 'Newsreader', Georgia, Cambria, 'Times New Roman', Times, serif;
+  }
+
+  .font-brand {
+    font-family: 'Newsreader', 'Noto Serif KR', Georgia, serif;
+  }
+}
+
+/* Custom Editorial Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f0ec;
+}
+::-webkit-scrollbar-thumb {
+  background: #cfccc2;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9d998c;
+}
+
+/* Article Typography styles */
+.article-prose {
+  color: #272522;
+  font-size: 1.125rem;
+  line-height: 1.85;
+  letter-spacing: -0.015em;
+  word-break: keep-all;
+}
+
+.article-prose h2 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.625rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: #11100f;
+  line-height: 1.35;
+}
+
+.article-prose h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: #1a1918;
+  line-height: 1.4;
+}
+
+.article-prose p {
+  margin-bottom: 1.5rem;
+}
+
+.article-prose blockquote {
+  border-left: 3px solid #1a1918;
+  padding-left: 1.25rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  font-family: 'Noto Serif KR', serif;
+  font-style: italic;
+  color: #4a4740;
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+.article-prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.article-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.article-prose li {
+  margin-bottom: 0.5rem;
+}
+
+.article-prose hr {
+  border: 0;
+  border-top: 1px solid #e5e3dc;
+  margin: 3rem auto;
+  width: 30%;
+}
+
+.article-prose a {
+  color: #1a1918;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.article-prose img {
+  border-radius: 0.5rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
