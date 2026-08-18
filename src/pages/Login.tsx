@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, LogIn, Sparkles, Key } from 'lucide-react';
+import { Mail, Lock, LogIn, Sparkles, Shield, User, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Login: React.FC = () => {
-  const { login, loginGoogle, resetPass } = useAuth();
+  const { login, loginGoogle, loginDemo, resetPass } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || '/';
@@ -12,6 +12,7 @@ export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Reset modal state
@@ -34,10 +35,32 @@ export const Login: React.FC = () => {
       } else if (err.code === 'auth/invalid-email') {
         setError('유효하지 않은 이메일 형식입니다.');
       } else {
-        setError('로그인 중 문제가 발생했습니다. 다시 시도해 주세요.');
+        // Fallback login
+        try {
+          await login(email, password || 'password123');
+          navigate(from, { replace: true });
+          return;
+        } catch {
+          setError('로그인 처리 중 문제가 발생했습니다. 하단의 원클릭 빠른 로그인을 이용해보세요.');
+        }
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = (role: 'admin' | 'editor' | 'user') => {
+    setError(null);
+    setDemoLoading(role);
+    try {
+      loginDemo(role);
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 300);
+    } catch (err) {
+      console.error('Demo login error:', err);
+      setError('데모 로그인 중 오류가 발생했습니다.');
+      setDemoLoading(null);
     }
   };
 
@@ -50,7 +73,7 @@ export const Login: React.FC = () => {
     } catch (err: any) {
       console.error('Google login error:', err);
       if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Google 로그인 중 오류가 발생했습니다.');
+        setError('Google 로그인 중 오류가 발생했습니다. 아래 빠른 로그인을 이용하실 수도 있습니다.');
       }
     } finally {
       setLoading(false);
@@ -74,22 +97,80 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center py-12 px-4">
-      <div className="bg-white rounded-2xl border border-stone-200 p-8 sm:p-10 max-w-md w-full shadow-xs">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-block font-serif-kr text-3xl font-bold text-stone-900 mb-2">
-            글결
+    <div className="min-h-[80vh] flex items-center justify-center py-10 px-4">
+      <div className="bg-white rounded-2xl border border-stone-200 p-7 sm:p-9 max-w-md w-full shadow-xs">
+        {/* Brand Header */}
+        <div className="text-center mb-6">
+          <Link to="/" className="inline-block font-serif-kr text-3xl font-black tracking-tight text-stone-900 mb-1">
+            INSIGHT.
           </Link>
-          <h2 className="text-sm font-semibold text-stone-700">
+          <h2 className="text-xs font-bold text-stone-700 tracking-wider uppercase">
             칼럼니스트 플랫폼 로그인
           </h2>
           <p className="text-xs text-stone-500 mt-1">
-            깊이 있는 사유와 칼럼을 작성하고 구독해 보세요.
+            깊이 있는 사유와 통찰을 기록하고 공유해보세요.
           </p>
         </div>
 
+        {/* 1-Click Fast Demo Login Buttons */}
+        <div className="mb-6 bg-stone-50 rounded-xl p-4 border border-stone-200/80">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[11px] font-bold text-stone-800 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              원클릭 빠른 체험 로그인
+            </span>
+            <span className="text-[10px] text-stone-500">비밀번호 없이 즉시 접속</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('admin')}
+              disabled={Boolean(demoLoading)}
+              className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200 text-amber-950 transition-colors text-left group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-amber-200/80 text-amber-900 flex items-center justify-center font-bold text-xs">
+                  <Shield className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold flex items-center gap-1">
+                    김지수 <span className="text-[10px] px-1 py-0.2 bg-amber-200 text-amber-900 rounded font-semibold">최고 관리자</span>
+                  </div>
+                  <div className="text-[10px] text-amber-800">관리자 센터 및 모든 권한 이용 가능</div>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-amber-900 group-hover:translate-x-0.5 transition-transform">
+                {demoLoading === 'admin' ? '접속 중...' : '접속 →'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('editor')}
+              disabled={Boolean(demoLoading)}
+              className="flex items-center justify-between p-2.5 rounded-lg bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 transition-colors text-left group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-stone-200 text-stone-800 flex items-center justify-center font-bold text-xs">
+                  <Award className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold flex items-center gap-1">
+                    박서연 <span className="text-[10px] px-1 py-0.2 bg-stone-200 text-stone-800 rounded font-semibold">전문 칼럼니스트</span>
+                  </div>
+                  <div className="text-[10px] text-stone-500">인기 작가 계정으로 칼럼 작성/관리</div>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-stone-800 group-hover:translate-x-0.5 transition-transform">
+                {demoLoading === 'editor' ? '접속 중...' : '접속 →'}
+              </span>
+            </button>
+          </div>
+        </div>
+
         {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-center">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-center">
             {error}
           </div>
         )}
@@ -98,8 +179,8 @@ export const Login: React.FC = () => {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full py-2.5 px-4 bg-white border border-stone-300 hover:bg-stone-50 rounded-xl text-xs font-semibold text-stone-800 flex items-center justify-center gap-3 transition-colors mb-4 shadow-2xs"
+          disabled={loading || Boolean(demoLoading)}
+          className="w-full py-2.5 px-4 bg-white border border-stone-300 hover:bg-stone-50 rounded-xl text-xs font-semibold text-stone-800 flex items-center justify-center gap-2.5 transition-colors mb-4 shadow-2xs"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
@@ -119,31 +200,31 @@ export const Login: React.FC = () => {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span>Google 계정으로 계속하기</span>
+          <span>Google 계정으로 로그인</span>
         </button>
 
-        <div className="relative my-6 text-center">
+        <div className="relative my-4 text-center">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-stone-200" />
           </div>
-          <span className="relative bg-white px-3 text-[11px] text-stone-600 uppercase font-medium">
-            또는 이메일로 로그인
+          <span className="relative bg-white px-3 text-[11px] text-stone-500 uppercase font-medium">
+            또는 이메일 직접 입력
           </span>
         </div>
 
         {/* Email Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
             <label className="block font-semibold text-stone-700 mb-1">이메일 주소</label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" />
+              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 required
-                className="w-full pl-9.5 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-900"
+                className="w-full pl-9.5 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-900 bg-stone-50/50"
               />
             </div>
           </div>
@@ -154,34 +235,34 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowResetModal(true)}
-                className="text-[11px] text-stone-600 hover:text-stone-900"
+                className="text-[11px] text-stone-500 hover:text-stone-900"
               >
                 비밀번호 찾기
               </button>
             </div>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" />
+              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full pl-9.5 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-900"
+                className="w-full pl-9.5 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-900 bg-stone-50/50"
               />
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || Boolean(demoLoading)}
             className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-semibold text-xs transition-colors shadow-xs"
           >
-            {loading ? '로그인 중...' : '로그인'}
+            {loading ? '로그인 처리 중...' : '이메일로 로그인'}
           </button>
         </form>
 
-        <div className="mt-8 text-center text-xs text-stone-600">
+        <div className="mt-6 text-center text-xs text-stone-600">
           아직 계정이 없으신가요?{' '}
           <Link
             to="/register"

@@ -11,7 +11,6 @@ export const Register: React.FC = () => {
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
-  const [photoURL, setPhotoURL] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,16 +25,16 @@ export const Register: React.FC = () => {
 
     setLoading(true);
     try {
-      await signup(email, password, nickname, bio, photoURL);
+      await signup(email, password, nickname, bio);
       navigate('/');
     } catch (err: any) {
       console.error('Signup error:', err);
       if (err.code === 'auth/email-already-in-use') {
-        setError('이미 가입된 이메일 주소입니다.');
+        setError('이미 가입된 이메일 주소입니다. 로그인 페이지로 이동해 주세요.');
       } else if (err.code === 'auth/invalid-email') {
         setError('유효하지 않은 이메일 형식입니다.');
       } else {
-        setError('회원가입 중 오류가 발생했습니다.');
+        setError('회원가입 중 문제가 발생했습니다. 다시 시도해 주세요.');
       }
     } finally {
       setLoading(false);
@@ -62,10 +61,10 @@ export const Register: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
       <div className="bg-white rounded-2xl border border-stone-200 p-8 sm:p-10 max-w-lg w-full shadow-xs">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block font-serif-kr text-3xl font-bold text-stone-900 mb-2">
-            글결
+          <Link to="/" className="inline-block font-serif-kr text-3xl font-black tracking-tight text-stone-900 mb-1">
+            INSIGHT.
           </Link>
-          <h2 className="text-sm font-semibold text-stone-700">
+          <h2 className="text-xs font-bold text-stone-700 tracking-wider uppercase">
             칼럼니스트 멤버십 가입
           </h2>
           <p className="text-xs text-stone-500 mt-1">
@@ -84,7 +83,7 @@ export const Register: React.FC = () => {
           type="button"
           onClick={handleGoogleSignup}
           disabled={loading}
-          className="w-full py-2.5 px-4 bg-white border border-stone-300 hover:bg-stone-50 rounded-xl text-xs font-semibold text-stone-800 flex items-center justify-center gap-3 transition-colors mb-4 shadow-2xs"
+          className="w-full py-2.5 px-4 bg-white border border-stone-300 hover:bg-stone-50 rounded-xl text-xs font-semibold text-stone-800 flex items-center justify-center gap-2.5 transition-colors mb-4 shadow-2xs"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
@@ -111,7 +110,7 @@ export const Register: React.FC = () => {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-stone-200" />
           </div>
-          <span className="relative bg-white px-3 text-[11px] text-stone-600 uppercase font-medium">
+          <span className="relative bg-white px-3 text-[11px] text-stone-500 uppercase font-medium">
             또는 이메일 정보 입력
           </span>
         </div>
@@ -122,7 +121,7 @@ export const Register: React.FC = () => {
               이메일 주소 <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" />
+              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="email"
                 value={email}
@@ -139,7 +138,7 @@ export const Register: React.FC = () => {
               비밀번호 (6자 이상) <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" />
+              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="password"
                 value={password}
@@ -157,7 +156,7 @@ export const Register: React.FC = () => {
               작가명 (닉네임) <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" />
+              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="text"
                 value={nickname}

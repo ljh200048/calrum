@@ -115,7 +115,7 @@ export const Header: React.FC = () => {
             <span className="whitespace-nowrap">칼럼 쓰기</span>
           </Link>
 
-          {currentUser ? (
+          {userProfile || currentUser ? (
             <div className="relative">
               <button
                 type="button"
@@ -126,8 +126,8 @@ export const Header: React.FC = () => {
                 <img
                   src={
                     userProfile?.photoURL ||
-                    currentUser.photoURL ||
-                    `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser.uid}`
+                    currentUser?.photoURL ||
+                    `https://api.dicebear.com/7.x/notionists/svg?seed=${userProfile?.uid || currentUser?.uid || 'user'}`
                   }
                   alt={userProfile?.nickname || '프로필'}
                   className="w-8 h-8 rounded-full object-cover border border-stone-300"
@@ -141,9 +141,11 @@ export const Header: React.FC = () => {
                 >
                   <div className="px-4 py-2 border-b border-stone-100">
                     <p className="font-semibold text-stone-900 truncate">
-                      {userProfile?.nickname || currentUser.displayName || '칼럼니스트'}
+                      {userProfile?.nickname || currentUser?.displayName || '칼럼니스트'}
                     </p>
-                    <p className="text-stone-500 text-[11px] truncate">{currentUser.email}</p>
+                    <p className="text-stone-500 text-[11px] truncate">
+                      {userProfile?.email || currentUser?.email}
+                    </p>
                     {isAdmin && (
                       <span className="inline-block mt-1 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
                         관리자
@@ -290,7 +292,7 @@ export const Header: React.FC = () => {
               <PenSquare className="w-4 h-4" />
               칼럼 작성하기
             </Link>
-            {!currentUser && (
+            {!userProfile && !currentUser && (
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <Link
                   to="/login"

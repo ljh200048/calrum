@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { LoadingSpinner } from './Loading';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, userProfile, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -15,7 +15,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   }
 
-  if (!currentUser) {
+  if (!currentUser && !userProfile) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

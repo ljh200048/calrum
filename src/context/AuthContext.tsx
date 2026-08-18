@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { auth, isFirebaseConfigured } from '../services/firebase';
 import { UserProfile } from '../types';
 import {
+  getLocalStoredUser,
   getUserProfile,
   isUserAdmin,
+  loginWithDemoAccount,
   loginWithEmail,
   loginWithGoogle,
   logout,
@@ -20,6 +22,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass: string) => Promise<UserProfile | null>;
   loginGoogle: () => Promise<UserProfile>;
+  loginDemo: (role: 'admin' | 'editor' | 'user') => UserProfile;
   signup: (email: string, pass: string, nickname: string, bio?: string, photoURL?: string) => Promise<UserProfile>;
   signout: () => Promise<void>;
   resetPass: (email: string) => Promise<void>;
@@ -31,32 +34,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => getLocalStoredUser());
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (user: User | null) => {
     if (!user) {
-      setUserProfile(null);
+      const local = getLocalStoredUser();
+      setUserProfile(local);
       return;
     }
     try {
       const profile = await getUserProfile(user.uid);
       if (profile) {
-        // Enforce admin if email is in ADMIN_EMAILS
         const adminCheck = isUserAdmin(user.email, profile.role);
         if (adminCheck && profile.role !== 'admin') {
           profile.role = 'admin';
         }
         setUserProfile(profile);
       } else {
-        // Fallback user profile
         const adminCheck = isUserAdmin(user.email);
         const fallback: UserProfile = {
           uid: user.uid,
           email: user.email || '',
           nickname: user.displayName || user.email?.split('@')[0] || '칼럼니스트',
           photoURL: user.photoURL || `https://api.dicebear.com/7.x/notionists/svg?seed=${user.uid}`,
-          bio: '생각을 기록하는 칼럼니스트입니다.',
+          bio: 'INSIGHT.에서 생각을 기록하는 칼럼니스트입니다.',
           role: adminCheck ? 'admin' : 'user',
           createdAt: Date.now(),
           followerCount: 0,
@@ -66,23 +68,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserProfile(fallback);
       }
     } catch (err) {
-      console.error('Failed to fetch user profile in context:', err);
+      console.warn('Failed to fetch user profile in context:', err);
+      const local = getLocalStoredUser();
+      if (local) setUserProfile(local);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      await fetchProfile(user);
-      setLoading(false);
-    });
+    // Check initial local session first
+    const initialLocal = getLocalStoredUser();
+    if (initialLocal) {
+      setUserProfile(initialLocal);
+    }
 
-    return () => unsubscribe();
+    if (isFirebaseConfigured && auth) {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        setCurrentUser(user);
+        if (user) {
+          await fetchProfile(user);
+        } else if (!initialLocal) {
+          setUserProfile(null);
+        }
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const refreshProfile = async () => {
     if (currentUser) {
       await fetchProfile(currentUser);
+    } else if (userProfile) {
+      const refreshed = await getUserProfile(userProfile.uid);
+      if (refreshed) setUserProfile(refreshed);
     }
   };
 
@@ -94,6 +114,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleLoginGoogle = async () => {
     const profile = await loginWithGoogle();
+    setUserProfile(profile);
+    return profile;
+  };
+
+  const handleLoginDemo = (role: 'admin' | 'editor' | 'user') => {
+    const profile = loginWithDemoAccount(role);
     setUserProfile(profile);
     return profile;
   };
@@ -117,14 +143,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleUpdateProfile = async (data: Partial<UserProfile>) => {
-    if (!currentUser) throw new Error('로그인이 필요합니다.');
-    await updateUserProfileData(currentUser.uid, data);
+    const currentUid = userProfile?.uid || currentUser?.uid;
+    if (!currentUid) throw new Error('로그인이 필요합니다.');
+    await updateUserProfileData(currentUid, data);
     setUserProfile((prev) => (prev ? { ...prev, ...data } : null));
   };
 
   const isAdmin = Boolean(
-    currentUser &&
-      (isUserAdmin(currentUser.email, userProfile?.role) || userProfile?.role === 'admin')
+    (currentUser && isUserAdmin(currentUser.email, userProfile?.role)) ||
+      (userProfile && (userProfile.role === 'admin' || isUserAdmin(userProfile.email, userProfile.role)))
   );
 
   return (
@@ -136,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         login: handleLogin,
         loginGoogle: handleLoginGoogle,
+        loginDemo: handleLoginDemo,
         signup: handleSignup,
         signout: handleSignout,
         resetPass: resetPassword,
