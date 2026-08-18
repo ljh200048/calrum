@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Flag,
   Layers,
+  Settings,
   ChevronLeft,
 } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export const AdminLayout: React.FC = () => {
     { to: '/admin/comments', label: '댓글 관리', icon: MessageSquare },
     { to: '/admin/reports', label: '신고 관리', icon: Flag },
     { to: '/admin/categories', label: '카테고리 관리', icon: Layers },
+    { to: '/admin/settings', label: '환경 설정', icon: Settings },
   ];
 
   return (

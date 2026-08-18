@@ -1,9 +1,8 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LoadingSpinner } from './Loading';
 import { ShieldAlert } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, isAdmin, loading } = useAuth();

@@ -29,6 +29,8 @@ import { AdminUsers } from './pages/Admin/AdminUsers';
 import { AdminComments } from './pages/Admin/AdminComments';
 import { AdminReports } from './pages/Admin/AdminReports';
 import { AdminCategories } from './pages/Admin/AdminCategories';
+import { AdminSettings } from './pages/Admin/AdminSettings';
+import { SetupAdmin } from './pages/SetupAdmin';
 
 export default function App() {
   return (
@@ -48,6 +50,7 @@ export default function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/setup/admin" element={<SetupAdmin />} />
 
               {/* Protected Member Routes */}
               <Route
@@ -90,6 +93,7 @@ export default function App() {
                 <Route path="comments" element={<AdminComments />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="categories" element={<AdminCategories />} />
+                <Route path="settings" element={<AdminSettings />} />
               </Route>
 
               {/* 404 Fallback */}
