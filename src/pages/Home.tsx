@@ -19,18 +19,22 @@ import { ArticleCardCompact } from '../components/article/ArticleCardCompact';
 import { AuthorCard } from '../components/author/AuthorCard';
 import { SkeletonCard } from '../components/common/Loading';
 
+import { INITIAL_ARTICLES, INITIAL_AUTHORS } from '../services/sampleData';
+import { DEFAULT_CATEGORIES } from '../config/constants';
+
 export const Home: React.FC = () => {
-  const [heroArticle, setHeroArticle] = useState<Article | null>(null);
-  const [popularArticles, setPopularArticles] = useState<Article[]>([]);
-  const [latestArticles, setLatestArticles] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [popularAuthors, setPopularAuthors] = useState<UserProfile[]>([]);
+  const defaultFeatured = INITIAL_ARTICLES.find((a) => a.isFeatured) || INITIAL_ARTICLES[0];
+  const [heroArticle, setHeroArticle] = useState<Article | null>(defaultFeatured);
+  const [popularArticles, setPopularArticles] = useState<Article[]>(() => INITIAL_ARTICLES.slice(0, 5));
+  const [latestArticles, setLatestArticles] = useState<Article[]>(() => INITIAL_ARTICLES);
+  const [categories, setCategories] = useState<Category[]>(() => DEFAULT_CATEGORIES);
+  const [popularAuthors, setPopularAuthors] = useState<UserProfile[]>(() => INITIAL_AUTHORS.slice(0, 4));
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showLoadingSpinner = false) => {
+    if (showLoadingSpinner) setLoading(true);
     try {
       const [allArticles, cats, authors] = await Promise.all([
         getArticles({ status: 'published' }),
@@ -38,10 +42,10 @@ export const Home: React.FC = () => {
         getPopularAuthors(4),
       ]);
 
-      setCategories(cats);
-      setPopularAuthors(authors);
+      if (cats && cats.length > 0) setCategories(cats);
+      if (authors && authors.length > 0) setPopularAuthors(authors);
 
-      if (allArticles.length > 0) {
+      if (allArticles && allArticles.length > 0) {
         const featured = allArticles.find((a) => a.isFeatured) || allArticles[0];
         setHeroArticle(featured);
 
@@ -55,9 +59,9 @@ export const Home: React.FC = () => {
         setLatestArticles(allArticles);
       }
     } catch (err) {
-      console.error('Failed to load home data:', err);
+      console.warn('Background sync note:', err);
     } finally {
-      setLoading(false);
+      if (showLoadingSpinner) setLoading(false);
     }
   };
 

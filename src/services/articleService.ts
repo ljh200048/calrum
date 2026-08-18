@@ -23,7 +23,29 @@ export const calculateReadTime = (content: string): number => {
   return Math.max(1, minutes);
 };
 
-export const getArticles = async (filters: ArticleFilters = {}): Promise<Article[]> => {
+// In-memory cache for fast article queries
+interface CacheEntry {
+  data: Article[];
+  timestamp: number;
+}
+const articlesQueryCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 1000; // 1 minute in-memory cache
+
+export const clearArticleCache = () => {
+  articlesQueryCache.clear();
+};
+
+export const getArticles = async (filters: ArticleFilters = {}, forceRefresh = false): Promise<Article[]> => {
+  const cacheKey = JSON.stringify(filters);
+  const now = Date.now();
+
+  if (!forceRefresh && articlesQueryCache.has(cacheKey)) {
+    const cached = articlesQueryCache.get(cacheKey)!;
+    if (now - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+  }
+
   try {
     const articlesCol = collection(db, 'articles');
     let q = query(articlesCol);
@@ -107,9 +129,12 @@ export const getArticles = async (filters: ArticleFilters = {}): Promise<Article
       results = results.slice(0, filters.limit);
     }
 
+    // Cache the result
+    articlesQueryCache.set(cacheKey, { data: results, timestamp: now });
+
     return results;
   } catch (error) {
-    console.error('Error fetching articles:', error);
+    console.warn('Error fetching articles, using fallback cache/samples:', error);
     let fallback = [...INITIAL_ARTICLES];
     if (filters.category) {
       fallback = fallback.filter((a) => a.categoryId === filters.category);
@@ -142,7 +167,7 @@ export const getArticleById = async (id: string): Promise<Article | null> => {
 
     return null;
   } catch (error) {
-    console.error('Error fetching article by ID:', error);
+    console.warn('Error fetching article by ID:', error);
     const sample = INITIAL_ARTICLES.find((a) => a.id === id);
     if (sample) return sample;
     return null;
@@ -163,7 +188,7 @@ export const incrementViewCount = async (articleId: string): Promise<void> => {
       viewCount: increment(1),
     });
   } catch (error) {
-    console.warn('Could not increment view count (article might be sample or offline):', error);
+    console.warn('Could not increment view count:', error);
   }
 };
 
@@ -186,6 +211,7 @@ export const createArticle = async (
   };
 
   await setDoc(doc(db, 'articles', articleId), newArticle);
+  clearArticleCache();
 
   // Update author's article count
   try {
@@ -212,10 +238,12 @@ export const updateArticle = async (id: string, data: Partial<Article>): Promise
   }
 
   await updateDoc(articleRef, updateData);
+  clearArticleCache();
 };
 
 export const deleteArticle = async (id: string, authorId?: string): Promise<void> => {
   await deleteDoc(doc(db, 'articles', id));
+  clearArticleCache();
 
   if (authorId) {
     try {
@@ -245,6 +273,8 @@ export const toggleLike = async (articleId: string, userId: string): Promise<{ l
   const likeRef = doc(db, 'likes', likeDocId);
   const likeSnap = await getDoc(likeRef);
   const articleRef = doc(db, 'articles', articleId);
+
+  clearArticleCache();
 
   if (likeSnap.exists()) {
     await deleteDoc(likeRef);
@@ -316,7 +346,7 @@ export const getUserBookmarkedArticles = async (userId: string): Promise<Article
     }
     return articles;
   } catch (error) {
-    console.error('Error fetching user bookmarks:', error);
+    console.warn('Error fetching user bookmarks:', error);
     return [];
   }
 };
@@ -339,7 +369,7 @@ export const getUserLikedArticles = async (userId: string): Promise<Article[]> =
     }
     return articles;
   } catch (error) {
-    console.error('Error fetching user likes:', error);
+    console.warn('Error fetching user likes:', error);
     return [];
   }
 };
@@ -348,4 +378,5 @@ export const seedSampleArticles = async (): Promise<void> => {
   for (const article of INITIAL_ARTICLES) {
     await setDoc(doc(db, 'articles', article.id), article, { merge: true });
   }
+  clearArticleCache();
 };

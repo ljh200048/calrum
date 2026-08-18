@@ -15,6 +15,10 @@ import { Follow, UserProfile } from '../types';
 import { getUserProfile } from './authService';
 import { INITIAL_AUTHORS } from './sampleData';
 
+let cachedPopularAuthors: UserProfile[] | null = null;
+let lastAuthorsFetchTime = 0;
+const AUTHORS_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
 export const isFollowing = async (followerId: string, followingId: string): Promise<boolean> => {
   if (!followerId || !followingId || followerId === followingId) return false;
   try {
@@ -38,6 +42,8 @@ export const toggleFollow = async (
 
   const followerUserRef = doc(db, 'users', followerId);
   const followingUserRef = doc(db, 'users', followingId);
+
+  cachedPopularAuthors = null; // Invalidate cache
 
   if (followSnap.exists()) {
     await deleteDoc(followRef);
@@ -78,12 +84,17 @@ export const getFollowedAuthors = async (followerId: string): Promise<UserProfil
     }
     return authors;
   } catch (error) {
-    console.error('Error fetching followed authors:', error);
+    console.warn('Error fetching followed authors:', error);
     return [];
   }
 };
 
-export const getPopularAuthors = async (limitCount = 4): Promise<UserProfile[]> => {
+export const getPopularAuthors = async (limitCount = 4, forceRefresh = false): Promise<UserProfile[]> => {
+  const now = Date.now();
+  if (!forceRefresh && cachedPopularAuthors && now - lastAuthorsFetchTime < AUTHORS_CACHE_TTL) {
+    return cachedPopularAuthors.slice(0, limitCount);
+  }
+
   try {
     const snap = await getDocs(collection(db, 'users'));
     const authors: UserProfile[] = [];
@@ -92,13 +103,17 @@ export const getPopularAuthors = async (limitCount = 4): Promise<UserProfile[]> 
     });
 
     if (authors.length < 2) {
+      cachedPopularAuthors = INITIAL_AUTHORS;
+      lastAuthorsFetchTime = now;
       return INITIAL_AUTHORS.slice(0, limitCount);
     }
 
     authors.sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0));
+    cachedPopularAuthors = authors;
+    lastAuthorsFetchTime = now;
     return authors.slice(0, limitCount);
   } catch (error) {
-    console.error('Error fetching popular authors:', error);
+    console.warn('Error fetching popular authors, using fallback:', error);
     return INITIAL_AUTHORS.slice(0, limitCount);
   }
 };

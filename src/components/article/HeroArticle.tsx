@@ -21,6 +21,8 @@ export const HeroArticle: React.FC<HeroArticleProps> = ({ article }) => {
             }
             alt={article.title}
             className="w-full h-full object-cover"
+            decoding="async"
+            loading="eager"
           />
           <div className="absolute top-4 left-4">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-stone-900/90 text-stone-100 backdrop-blur-md">
