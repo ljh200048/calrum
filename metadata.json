@@ -2,5 +2,7 @@
   "name": "칼럼 플랫폼 (Column Platform)",
   "description": "누구나 칼럼니스트가 되어 생각을 나누는 모던 에디토리얼 칼럼 & 아티클 플랫폼",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

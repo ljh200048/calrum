@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Feather, ArrowLeft } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Feather } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { createArticle } from '../services/articleService';
 import { ArticleEditor } from '../components/article/ArticleEditor';
@@ -8,6 +8,8 @@ import { ArticleEditor } from '../components/article/ArticleEditor';
 export const WriteArticle: React.FC = () => {
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialCategory = searchParams.get('category') || undefined;
   const [loading, setLoading] = useState(false);
 
   const handleSave = async (data: {
@@ -61,7 +63,11 @@ export const WriteArticle: React.FC = () => {
         독자들과 나눌 깊이 있는 생각과 사유를 에디터에 담아주세요.
       </p>
 
-      <ArticleEditor onSave={handleSave} isLoading={loading} />
+      <ArticleEditor
+        initialData={initialCategory ? { categoryId: initialCategory } : undefined}
+        onSave={handleSave}
+        isLoading={loading}
+      />
     </div>
   );
 };

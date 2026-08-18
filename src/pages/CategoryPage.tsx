@@ -67,14 +67,27 @@ export const CategoryPage: React.FC = () => {
           <Layers className="w-4 h-4" />
           <span>카테고리 탐색</span>
         </div>
-        <h1 className="font-serif-kr text-3xl sm:text-4xl font-bold text-stone-900 mb-3">
-          {isAll ? '모든 주제별 칼럼' : currentCategory?.name}
-        </h1>
-        <p className="text-xs sm:text-sm text-stone-600 max-w-2xl leading-relaxed">
-          {isAll
-            ? '사회의 다양한 분야에서 깊은 통찰을 제공하는 칼럼 아카이브입니다.'
-            : currentCategory?.description}
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif-kr text-3xl sm:text-4xl font-bold text-stone-900 mb-3">
+              {isAll ? '모든 주제별 칼럼' : currentCategory?.name}
+            </h1>
+            <p className="text-xs sm:text-sm text-stone-600 max-w-2xl leading-relaxed">
+              {isAll
+                ? '사회의 다양한 분야에서 깊은 통찰을 제공하는 칼럼 아카이브입니다.'
+                : currentCategory?.description}
+            </p>
+          </div>
+          {!isAll && currentCategory && (
+            <Link
+              to={`/write?category=${currentCategory.id}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-semibold hover:bg-stone-800 transition-colors shrink-0 shadow-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{currentCategory.name} 칼럼 작성</span>
+            </Link>
+          )}
+        </div>
 
         {/* Category switcher pills */}
         <div className="flex items-center gap-2 flex-wrap pt-6 mt-6 border-t border-stone-100 text-xs">
