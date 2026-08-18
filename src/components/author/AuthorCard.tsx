@@ -63,6 +63,8 @@ export const AuthorCard: React.FC<AuthorCardProps> = ({ author }) => {
               }
               alt={author.nickname}
               className="w-12 h-12 rounded-full object-cover border border-stone-300 group-hover:ring-2 group-hover:ring-stone-900 transition-all"
+              loading="lazy"
+              decoding="async"
             />
             <div>
               <h4 className="font-serif-kr text-base font-bold text-stone-900 group-hover:text-stone-700 transition-colors">

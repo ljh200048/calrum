@@ -35,23 +35,27 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { ReportModal } from '../components/common/ReportModal';
 import { ShareModal } from '../components/common/ShareModal';
 import { LoadingSpinner } from '../components/common/Loading';
+import { INITIAL_ARTICLES, INITIAL_AUTHORS } from '../services/sampleData';
 
 export const ArticleDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, isAdmin } = useAuth();
 
-  const [article, setArticle] = useState<Article | null>(null);
-  const [author, setAuthor] = useState<UserProfile | null>(null);
+  const cachedArt = id ? INITIAL_ARTICLES.find((a) => a.id === id) || null : null;
+  const cachedAuth = cachedArt ? INITIAL_AUTHORS.find((a) => a.uid === cachedArt.authorId) || null : null;
+
+  const [article, setArticle] = useState<Article | null>(cachedArt);
+  const [author, setAuthor] = useState<UserProfile | null>(cachedAuth);
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(cachedArt ? false : true);
 
   // User state on this article
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(cachedArt?.likeCount || 0);
   const [bookmarked, setBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
-  const [followers, setFollowers] = useState(0);
+  const [followers, setFollowers] = useState(cachedAuth?.followerCount || 0);
 
   // Modals
   const [showShareModal, setShowShareModal] = useState(false);
@@ -63,7 +67,7 @@ export const ArticleDetail: React.FC = () => {
     if (!id) return;
 
     const fetchArticleData = async () => {
-      setLoading(true);
+      if (!article) setLoading(true);
       try {
         const art = await getArticleById(id);
         if (!art) {
@@ -79,36 +83,39 @@ export const ArticleDetail: React.FC = () => {
         document.title = `${art.title} | INSIGHT. 칼럼`;
 
         // Increment view count in Firestore
-        await incrementViewCount(id);
+        incrementViewCount(id).catch(() => {});
 
         // Fetch author details
-        const authorData = await getUserProfile(art.authorId);
-        if (authorData) {
-          setAuthor(authorData);
-          setFollowers(authorData.followerCount || 0);
-        }
+        getUserProfile(art.authorId).then((authorData) => {
+          if (authorData) {
+            setAuthor(authorData);
+            setFollowers(authorData.followerCount || 0);
+          }
+        }).catch(() => {});
 
         // Fetch related articles
-        const related = await getArticles({
+        getArticles({
           category: art.categoryId,
           limit: 4,
           status: 'published',
-        });
-        setRelatedArticles(related.filter((r) => r.id !== art.id).slice(0, 3));
+        }).then((related) => {
+          setRelatedArticles(related.filter((r) => r.id !== art.id).slice(0, 3));
+        }).catch(() => {});
 
-        // Check user like/bookmark/follow status
+        // Check user like/bookmark/follow status in parallel
         if (currentUser) {
-          const [hasLiked, hasBookmarked, isUserFollowing] = await Promise.all([
+          Promise.all([
             isArticleLiked(id, currentUser.uid),
             isArticleBookmarked(id, currentUser.uid),
             isFollowing(currentUser.uid, art.authorId),
-          ]);
-          setLiked(hasLiked);
-          setBookmarked(hasBookmarked);
-          setFollowing(isUserFollowing);
+          ]).then(([hasLiked, hasBookmarked, isUserFollowing]) => {
+            setLiked(hasLiked);
+            setBookmarked(hasBookmarked);
+            setFollowing(isUserFollowing);
+          }).catch(() => {});
         }
       } catch (err) {
-        console.error('Failed to load article detail:', err);
+        console.warn('Failed to load article detail:', err);
       } finally {
         setLoading(false);
       }

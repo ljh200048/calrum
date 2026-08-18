@@ -8,25 +8,27 @@ import { ArticleCard } from '../components/article/ArticleCard';
 import { AuthorCard } from '../components/author/AuthorCard';
 import { SkeletonCard } from '../components/common/Loading';
 
+import { INITIAL_ARTICLES, INITIAL_AUTHORS } from '../services/sampleData';
+
 export const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const currentTab = searchParams.get('tab') || 'articles';
 
   const [inputVal, setInputVal] = useState(query);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [authors, setAuthors] = useState<UserProfile[]>([]);
+  const [articles, setArticles] = useState<Article[]>(() => INITIAL_ARTICLES);
+  const [authors, setAuthors] = useState<UserProfile[]>(() => INITIAL_AUTHORS);
   const [loading, setLoading] = useState(false);
 
   const executeSearch = async (term: string) => {
-    setLoading(true);
+    if (term) setLoading(true);
     try {
       const [allArts, allAuthors] = await Promise.all([
         getArticles({ search: term || undefined, status: 'published' }),
         getAllUsers(50),
       ]);
 
-      setArticles(allArts);
+      if (allArts) setArticles(allArts);
 
       if (term) {
         const lower = term.toLowerCase();
@@ -41,9 +43,9 @@ export const SearchPage: React.FC = () => {
         setAuthors(allAuthors);
       }
     } catch (err) {
-      console.error('Search error:', err);
+      console.warn('Search note:', err);
     } finally {
-      setLoading(false);
+      if (term) setLoading(false);
     }
   };
 

@@ -7,20 +7,27 @@ import { getCategories } from '../services/categoryService';
 import { ArticleCard } from '../components/article/ArticleCard';
 import { SkeletonCard } from '../components/common/Loading';
 
+import { INITIAL_ARTICLES } from '../services/sampleData';
+import { DEFAULT_CATEGORIES } from '../config/constants';
+
 export const CategoryPage: React.FC = () => {
   const { category: categoryId } = useParams<{ category: string }>();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialCategory = DEFAULT_CATEGORIES.find((c) => c.id === categoryId) || null;
+  const initialArticles = categoryId && categoryId !== 'all'
+    ? INITIAL_ARTICLES.filter((a) => a.categoryId === categoryId)
+    : INITIAL_ARTICLES;
+
+  const [categories, setCategories] = useState<Category[]>(() => DEFAULT_CATEGORIES);
+  const [currentCategory, setCurrentCategory] = useState<Category | null>(initialCategory);
+  const [articles, setArticles] = useState<Article[]>(initialArticles);
+  const [loading, setLoading] = useState(false);
   const [sort, setSort] = useState<'latest' | 'popular' | 'views'>('latest');
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
       try {
         const cats = await getCategories();
-        setCategories(cats);
+        if (cats && cats.length > 0) setCategories(cats);
 
         if (categoryId && categoryId !== 'all') {
           const match = cats.find((c) => c.id === categoryId);
@@ -38,19 +45,17 @@ export const CategoryPage: React.FC = () => {
             sort,
             status: 'published',
           });
-          setArticles(arts);
+          if (arts) setArticles(arts);
         } else {
           setCurrentCategory(null);
           const arts = await getArticles({
             sort,
             status: 'published',
           });
-          setArticles(arts);
+          if (arts) setArticles(arts);
         }
       } catch (err) {
-        console.error('Failed to load category data:', err);
-      } finally {
-        setLoading(false);
+        console.warn('Failed to load category data:', err);
       }
     };
 

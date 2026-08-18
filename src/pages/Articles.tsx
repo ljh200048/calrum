@@ -15,11 +15,14 @@ import { getCategories } from '../services/categoryService';
 import { ArticleCard } from '../components/article/ArticleCard';
 import { SkeletonCard } from '../components/common/Loading';
 
+import { INITIAL_ARTICLES } from '../services/sampleData';
+import { DEFAULT_CATEGORIES } from '../config/constants';
+
 export const Articles: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [articles, setArticles] = useState<Article[]>(() => INITIAL_ARTICLES);
+  const [categories, setCategories] = useState<Category[]>(() => DEFAULT_CATEGORIES);
+  const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const selectedCategory = searchParams.get('category') || 'all';
@@ -32,13 +35,13 @@ export const Articles: React.FC = () => {
   useEffect(() => {
     const fetchCats = async () => {
       const cats = await getCategories();
-      setCategories(cats);
+      if (cats && cats.length > 0) setCategories(cats);
     };
     fetchCats();
   }, []);
 
-  const loadArticles = async () => {
-    setLoading(true);
+  const loadArticles = async (showLoadingSpinner = false) => {
+    if (showLoadingSpinner) setLoading(true);
     try {
       const data = await getArticles({
         category: selectedCategory === 'all' ? undefined : selectedCategory,
@@ -47,16 +50,16 @@ export const Articles: React.FC = () => {
         search: searchKeyword || undefined,
         status: 'published',
       });
-      setArticles(data);
+      if (data) setArticles(data);
     } catch (err) {
-      console.error('Failed to load articles:', err);
+      console.warn('Failed to load articles:', err);
     } finally {
-      setLoading(false);
+      if (showLoadingSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadArticles();
+    loadArticles(false);
   }, [selectedCategory, selectedSort, selectedTag, searchKeyword]);
 
   const updateParam = (key: string, value: string) => {

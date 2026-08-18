@@ -7,13 +7,23 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Comment, UserProfile } from '../types';
+import { Comment } from '../types';
 
-export const getComments = async (articleId: string): Promise<Comment[]> => {
+const commentsCache = new Map<string, { data: Comment[]; timestamp: number }>();
+const CACHE_TTL = 60 * 1000; // 1 minute
+
+export const getComments = async (articleId: string, forceRefresh = false): Promise<Comment[]> => {
+  const now = Date.now();
+  if (!forceRefresh && commentsCache.has(articleId)) {
+    const cached = commentsCache.get(articleId)!;
+    if (now - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+  }
+
   try {
     const q = query(
       collection(db, 'comments'),
@@ -26,10 +36,11 @@ export const getComments = async (articleId: string): Promise<Comment[]> => {
     });
 
     comments.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    commentsCache.set(articleId, { data: comments, timestamp: now });
     return comments;
   } catch (error) {
-    console.error('Error fetching comments:', error);
-    return [];
+    console.warn('Error fetching comments:', error);
+    return commentsCache.get(articleId)?.data || [];
   }
 };
 
@@ -50,6 +61,7 @@ export const addComment = async (
   };
 
   await setDoc(doc(db, 'comments', commentId), newComment);
+  commentsCache.delete(articleId); // invalidate cache
 
   try {
     const articleRef = doc(db, 'articles', articleId);
@@ -65,6 +77,7 @@ export const addComment = async (
 
 export const deleteComment = async (commentId: string, articleId: string): Promise<void> => {
   await deleteDoc(doc(db, 'comments', commentId));
+  commentsCache.delete(articleId); // invalidate cache
 
   try {
     const articleRef = doc(db, 'articles', articleId);
@@ -86,7 +99,7 @@ export const getAllComments = async (limitCount = 50): Promise<Comment[]> => {
     comments.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     return comments.slice(0, limitCount);
   } catch (error) {
-    console.error('Error fetching all comments:', error);
+    console.warn('Error fetching all comments:', error);
     return [];
   }
 };

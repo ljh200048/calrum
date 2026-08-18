@@ -45,6 +45,8 @@ export const ArticleCardCompact: React.FC<ArticleCardCompactProps> = ({ article,
             src={article.coverImage}
             alt={article.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            loading="lazy"
+            decoding="async"
           />
         </Link>
       )}

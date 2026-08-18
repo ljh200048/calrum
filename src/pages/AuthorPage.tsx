@@ -16,22 +16,26 @@ import { useAuth } from '../context/AuthContext';
 import { ArticleCard } from '../components/article/ArticleCard';
 import { SkeletonCard, LoadingSpinner } from '../components/common/Loading';
 
+import { INITIAL_ARTICLES, INITIAL_AUTHORS } from '../services/sampleData';
+
 export const AuthorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const [author, setAuthor] = useState<UserProfile | null>(null);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAuthor = id ? INITIAL_AUTHORS.find((a) => a.uid === id) || null : null;
+  const cachedArts = id ? INITIAL_ARTICLES.filter((a) => a.authorId === id) : [];
+
+  const [author, setAuthor] = useState<UserProfile | null>(cachedAuthor);
+  const [articles, setArticles] = useState<Article[]>(cachedArts);
+  const [loading, setLoading] = useState(cachedAuthor ? false : true);
   const [following, setFollowing] = useState(false);
-  const [followers, setFollowers] = useState(0);
+  const [followers, setFollowers] = useState(cachedAuthor?.followerCount || 0);
   const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     const fetchAuthorData = async () => {
-      setLoading(true);
       try {
         const [profile, arts] = await Promise.all([
           getUserProfile(id),
@@ -41,16 +45,17 @@ export const AuthorPage: React.FC = () => {
         if (profile) {
           setAuthor(profile);
           setFollowers(profile.followerCount || 0);
-          document.title = `${profile.nickname} 칼럼니스트 | 글결`;
+          document.title = `${profile.nickname} 칼럼니스트 | INSIGHT.`;
         }
-        setArticles(arts);
+        if (arts) setArticles(arts);
 
         if (currentUser && id && currentUser.uid !== id) {
-          const isUserFollowing = await isFollowing(currentUser.uid, id);
-          setFollowing(isUserFollowing);
+          isFollowing(currentUser.uid, id).then((isUserFollowing) => {
+            setFollowing(isUserFollowing);
+          }).catch(() => {});
         }
       } catch (err) {
-        console.error('Failed to load author page:', err);
+        console.warn('Failed to load author page:', err);
       } finally {
         setLoading(false);
       }

@@ -36,7 +36,7 @@ export const Profile: React.FC = () => {
   const [bookmarks, setBookmarks] = useState<Article[]>([]);
   const [likes, setLikes] = useState<Article[]>([]);
   const [followedAuthors, setFollowedAuthors] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Edit Profile modal state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -53,9 +53,9 @@ export const Profile: React.FC = () => {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (showLoading = false) => {
     if (!currentUser) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const [allUserArts, userDrafts, userBookmarks, userLikes, followed] =
         await Promise.all([
@@ -66,15 +66,15 @@ export const Profile: React.FC = () => {
           getFollowedAuthors(currentUser.uid),
         ]);
 
-      setMyArticles(allUserArts);
-      setDraftArticles(userDrafts);
-      setBookmarks(userBookmarks);
-      setLikes(userLikes);
-      setFollowedAuthors(followed);
+      if (allUserArts) setMyArticles(allUserArts);
+      if (userDrafts) setDraftArticles(userDrafts);
+      if (userBookmarks) setBookmarks(userBookmarks);
+      if (userLikes) setLikes(userLikes);
+      if (followed) setFollowedAuthors(followed);
     } catch (err) {
-      console.error('Failed to load profile data:', err);
+      console.warn('Failed to load profile data:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
