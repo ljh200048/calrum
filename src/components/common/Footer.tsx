@@ -11,8 +11,8 @@ export const Footer: React.FC = () => {
           {/* Brand Col */}
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center gap-2">
-              <span className="font-serif-kr text-2xl font-bold tracking-tight text-white">
-                글결
+              <span className="font-serif-kr text-2xl font-black tracking-tight text-white">
+                INSIGHT.
               </span>
               <span className="text-[10px] font-semibold tracking-widest uppercase px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 font-sans">
                 COLUMN
@@ -85,7 +85,7 @@ export const Footer: React.FC = () => {
               플랫폼 정책 & 가이드
             </h3>
             <p className="text-xs text-stone-400 leading-relaxed mb-3">
-              글결은 건전하고 신뢰할 수 있는 에디토리얼 생태계를 지향합니다. 표절 및 비방성 콘텐츠는 엄격히 금지됩니다.
+              INSIGHT.는 건전하고 신뢰할 수 있는 에디토리얼 생태계를 지향합니다. 표절 및 비방성 콘텐츠는 엄격히 금지됩니다.
             </p>
             <div className="flex items-center gap-3 text-xs text-stone-500">
               <Link to="/admin" className="hover:text-stone-300 transition-colors flex items-center gap-1">
@@ -96,7 +96,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="pt-8 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-4">
-          <p>© {new Date().getFullYear()} 글결 (Geulgyeol) Column Platform. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} INSIGHT. Column Platform. All rights reserved.</p>
           <div className="flex items-center gap-4 text-[11px]">
             <span>이용약관</span>
             <span>개인정보처리방침</span>

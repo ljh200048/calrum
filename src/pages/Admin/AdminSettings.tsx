@@ -4,7 +4,7 @@ import { seedDefaultCategories } from '../../services/categoryService';
 import { seedSampleArticles } from '../../services/articleService';
 
 export const AdminSettings: React.FC = () => {
-  const [platformName, setPlatformName] = useState('글결 (Geulgyeol)');
+  const [platformName, setPlatformName] = useState('INSIGHT.');
   const [siteDescription, setSiteDescription] = useState('생각을 깊게 하고, 사유를 넓히는 프리미엄 에디토리얼 칼럼 플랫폼');
   const [allowPublicRegister, setAllowPublicRegister] = useState(true);
   const [allowComments, setAllowComments] = useState(true);

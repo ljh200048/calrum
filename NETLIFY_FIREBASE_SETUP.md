@@ -1,6 +1,6 @@
 # Netlify 및 로컬 개발 환경 Firebase 연동 가이드
 
-글결 (Geulgyeol) 프로젝트는 Vite 환경변수(`import.meta.env.VITE_FIREBASE_*`)를 통해 Firebase 설정을 안전하게 관리합니다.
+INSIGHT. 프로젝트는 Vite 환경변수(`import.meta.env.VITE_FIREBASE_*`)를 통해 Firebase 설정을 안전하게 관리합니다.
 
 ---
 

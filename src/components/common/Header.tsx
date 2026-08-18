@@ -38,8 +38,8 @@ export const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Zone 1: Brand title, one line */}
         <Link to="/" className="flex items-center gap-2.5 group">
-          <span className="font-serif-kr text-2xl font-bold tracking-tight text-stone-900 group-hover:text-stone-700 transition-colors">
-            글결
+          <span className="font-serif-kr text-2xl font-black tracking-tight text-stone-900 group-hover:text-stone-700 transition-colors">
+            INSIGHT.
           </span>
           <span className="text-[10px] font-semibold tracking-widest uppercase px-1.5 py-0.5 rounded bg-stone-900 text-stone-100 font-sans">
             COLUMN

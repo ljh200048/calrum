@@ -110,7 +110,7 @@ export const loginWithGoogle = async (): Promise<UserProfile> => {
       photoURL:
         user.photoURL ||
         `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user.displayName || user.uid)}`,
-      bio: '새롭게 글결에 합류한 칼럼니스트입니다.',
+      bio: '새롭게 INSIGHT.에 합류한 칼럼니스트입니다.',
       role: isAdmin ? 'admin' : 'user',
       createdAt: Date.now(),
       followerCount: 0,

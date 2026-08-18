@@ -34,7 +34,7 @@ export const AdminLayout: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-serif-kr text-xl sm:text-2xl font-bold">
-                글결 최고 관리자 센터
+                INSIGHT. 최고 관리자 센터
               </h1>
               <span className="text-[10px] bg-amber-500 text-stone-950 font-bold px-2 py-0.5 rounded">
                 ADMIN

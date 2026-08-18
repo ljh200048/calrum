@@ -76,7 +76,7 @@ export const ArticleDetail: React.FC = () => {
         setLikeCount(art.likeCount || 0);
 
         // Update document title for SEO
-        document.title = `${art.title} | 글결 칼럼`;
+        document.title = `${art.title} | INSIGHT. 칼럼`;
 
         // Increment view count in Firestore
         await incrementViewCount(id);

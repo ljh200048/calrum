@@ -302,7 +302,7 @@ export const Home: React.FC = () => {
             당신의 고유한 시선과 통찰을<br />세상과 나누어보세요
           </h2>
           <p className="text-xs sm:text-sm text-stone-300 leading-relaxed max-w-lg mx-auto">
-            일상의 사소한 발견부터 사회를 향한 날카로운 제언까지. 글결은 진솔한 생각의 힘을 믿습니다.
+            일상의 사소한 발견부터 사회를 향한 날카로운 제언까지. INSIGHT.는 진솔한 생각의 힘을 믿습니다.
           </p>
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
