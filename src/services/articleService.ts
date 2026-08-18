@@ -8,8 +8,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
-  limit as firestoreLimit,
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -23,13 +21,51 @@ export const calculateReadTime = (content: string): number => {
   return Math.max(1, minutes);
 };
 
+// Local storage keys for deleted and overridden articles (for offline / instant persist support)
+const DELETED_ARTICLES_KEY = 'insight_deleted_articles_set';
+const ARTICLE_OVERRIDES_KEY = 'insight_article_overrides_map';
+
+const getDeletedArticleIds = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(DELETED_ARTICLES_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set<string>();
+  } catch {
+    return new Set<string>();
+  }
+};
+
+const addDeletedArticleId = (id: string): void => {
+  try {
+    const set = getDeletedArticleIds();
+    set.add(id);
+    localStorage.setItem(DELETED_ARTICLES_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+};
+
+const getArticleOverrides = (): Record<string, Partial<Article>> => {
+  try {
+    const raw = localStorage.getItem(ARTICLE_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setArticleOverride = (id: string, updates: Partial<Article>): void => {
+  try {
+    const map = getArticleOverrides();
+    map[id] = { ...(map[id] || {}), ...updates };
+    localStorage.setItem(ARTICLE_OVERRIDES_KEY, JSON.stringify(map));
+  } catch {}
+};
+
 // In-memory cache for fast article queries
 interface CacheEntry {
   data: Article[];
   timestamp: number;
 }
 const articlesQueryCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60 * 1000; // 1 minute in-memory cache
+const CACHE_TTL_MS = 30 * 1000; // 30 seconds
 
 export const clearArticleCache = () => {
   articlesQueryCache.clear();
@@ -45,6 +81,9 @@ export const getArticles = async (filters: ArticleFilters = {}, forceRefresh = f
       return cached.data;
     }
   }
+
+  const deletedIds = getDeletedArticleIds();
+  const overrides = getArticleOverrides();
 
   try {
     const articlesCol = collection(db, 'articles');
@@ -68,18 +107,38 @@ export const getArticles = async (filters: ArticleFilters = {}, forceRefresh = f
     let results: Article[] = [];
 
     snapshot.forEach((d) => {
-      results.push({ id: d.id, ...(d.data() as Omit<Article, 'id'>) });
+      if (!deletedIds.has(d.id)) {
+        const item = { id: d.id, ...(d.data() as Omit<Article, 'id'>) };
+        if (overrides[d.id]) {
+          Object.assign(item, overrides[d.id]);
+        }
+        results.push(item);
+      }
     });
 
-    // If firestore is empty, seed or provide initial sample articles
+    // If firestore is empty or returning few, provide initial sample articles
     if (results.length === 0 && !filters.authorId) {
-      results = [...INITIAL_ARTICLES];
+      results = INITIAL_ARTICLES.filter((a) => !deletedIds.has(a.id)).map((a) => {
+        const item = { ...a };
+        if (overrides[a.id]) {
+          Object.assign(item, overrides[a.id]);
+        }
+        return item;
+      });
+
       if (filters.category) {
         results = results.filter((a) => a.categoryId === filters.category);
       }
       if (filters.status && filters.status !== 'all') {
         results = results.filter((a) => a.status === filters.status);
       }
+    }
+
+    // Apply any local status filtering
+    if (filters.status && filters.status !== 'all') {
+      results = results.filter((a) => a.status === filters.status);
+    } else if (!filters.status) {
+      results = results.filter((a) => a.status === 'published');
     }
 
     // Tag filter
@@ -135,9 +194,19 @@ export const getArticles = async (filters: ArticleFilters = {}, forceRefresh = f
     return results;
   } catch (error) {
     console.warn('Error fetching articles, using fallback cache/samples:', error);
-    let fallback = [...INITIAL_ARTICLES];
+    let fallback = INITIAL_ARTICLES.filter((a) => !deletedIds.has(a.id)).map((a) => {
+      const item = { ...a };
+      if (overrides[a.id]) {
+        Object.assign(item, overrides[a.id]);
+      }
+      return item;
+    });
+
     if (filters.category) {
       fallback = fallback.filter((a) => a.categoryId === filters.category);
+    }
+    if (filters.status && filters.status !== 'all') {
+      fallback = fallback.filter((a) => a.status === filters.status);
     }
     if (filters.search) {
       const term = filters.search.toLowerCase();
@@ -153,30 +222,52 @@ export const getArticles = async (filters: ArticleFilters = {}, forceRefresh = f
 };
 
 export const getArticleById = async (id: string): Promise<Article | null> => {
+  const deletedIds = getDeletedArticleIds();
+  if (deletedIds.has(id)) {
+    return null;
+  }
+
+  const overrides = getArticleOverrides();
+
   try {
     const articleRef = doc(db, 'articles', id);
     const snap = await getDoc(articleRef);
 
     if (snap.exists()) {
-      return { id: snap.id, ...(snap.data() as Omit<Article, 'id'>) };
+      const data = { id: snap.id, ...(snap.data() as Omit<Article, 'id'>) };
+      if (overrides[id]) {
+        Object.assign(data, overrides[id]);
+      }
+      return data;
     }
 
     // Check sample articles
     const sample = INITIAL_ARTICLES.find((a) => a.id === id);
-    if (sample) return sample;
+    if (sample && !deletedIds.has(sample.id)) {
+      const data = { ...sample };
+      if (overrides[id]) {
+        Object.assign(data, overrides[id]);
+      }
+      return data;
+    }
 
     return null;
   } catch (error) {
     console.warn('Error fetching article by ID:', error);
     const sample = INITIAL_ARTICLES.find((a) => a.id === id);
-    if (sample) return sample;
+    if (sample && !deletedIds.has(sample.id)) {
+      const data = { ...sample };
+      if (overrides[id]) {
+        Object.assign(data, overrides[id]);
+      }
+      return data;
+    }
     return null;
   }
 };
 
 export const incrementViewCount = async (articleId: string): Promise<void> => {
   try {
-    // Prevent duplicate views in the same session
     const viewedKey = `viewed_article_${articleId}`;
     if (sessionStorage.getItem(viewedKey)) {
       return;
@@ -210,10 +301,15 @@ export const createArticle = async (
     updatedAt: now,
   };
 
-  await setDoc(doc(db, 'articles', articleId), newArticle);
+  try {
+    await setDoc(doc(db, 'articles', articleId), newArticle);
+  } catch (err) {
+    console.warn('Could not setDoc in Firestore, saving local override:', err);
+    setArticleOverride(articleId, newArticle);
+  }
+
   clearArticleCache();
 
-  // Update author's article count
   try {
     const authorRef = doc(db, 'users', articleData.authorId);
     await updateDoc(authorRef, {
@@ -227,7 +323,6 @@ export const createArticle = async (
 };
 
 export const updateArticle = async (id: string, data: Partial<Article>): Promise<void> => {
-  const articleRef = doc(db, 'articles', id);
   const updateData: Partial<Article> = {
     ...data,
     updatedAt: Date.now(),
@@ -237,13 +332,28 @@ export const updateArticle = async (id: string, data: Partial<Article>): Promise
     updateData.readTimeMinutes = calculateReadTime(data.content);
   }
 
-  await updateDoc(articleRef, updateData);
+  // Update local overrides immediately for instant sync
+  setArticleOverride(id, updateData);
   clearArticleCache();
+
+  try {
+    const articleRef = doc(db, 'articles', id);
+    await updateDoc(articleRef, updateData);
+  } catch (err) {
+    console.warn('Could not updateDoc in Firestore, local override applied:', err);
+  }
 };
 
 export const deleteArticle = async (id: string, authorId?: string): Promise<void> => {
-  await deleteDoc(doc(db, 'articles', id));
+  // Add to deleted IDs set immediately
+  addDeletedArticleId(id);
   clearArticleCache();
+
+  try {
+    await deleteDoc(doc(db, 'articles', id));
+  } catch (err) {
+    console.warn('Could not deleteDoc in Firestore, marked as deleted locally:', err);
+  }
 
   if (authorId) {
     try {
@@ -271,28 +381,32 @@ export const isArticleLiked = async (articleId: string, userId: string): Promise
 export const toggleLike = async (articleId: string, userId: string): Promise<{ liked: boolean; countDelta: number }> => {
   const likeDocId = `${articleId}_${userId}`;
   const likeRef = doc(db, 'likes', likeDocId);
-  const likeSnap = await getDoc(likeRef);
   const articleRef = doc(db, 'articles', articleId);
 
   clearArticleCache();
 
-  if (likeSnap.exists()) {
-    await deleteDoc(likeRef);
-    try {
-      await updateDoc(articleRef, { likeCount: increment(-1) });
-    } catch {}
-    return { liked: false, countDelta: -1 };
-  } else {
-    const likeData: Like = {
-      id: likeDocId,
-      articleId,
-      userId,
-      createdAt: Date.now(),
-    };
-    await setDoc(likeRef, likeData);
-    try {
-      await updateDoc(articleRef, { likeCount: increment(1) });
-    } catch {}
+  try {
+    const likeSnap = await getDoc(likeRef);
+    if (likeSnap.exists()) {
+      await deleteDoc(likeRef);
+      try {
+        await updateDoc(articleRef, { likeCount: increment(-1) });
+      } catch {}
+      return { liked: false, countDelta: -1 };
+    } else {
+      const likeData: Like = {
+        id: likeDocId,
+        articleId,
+        userId,
+        createdAt: Date.now(),
+      };
+      await setDoc(likeRef, likeData);
+      try {
+        await updateDoc(articleRef, { likeCount: increment(1) });
+      } catch {}
+      return { liked: true, countDelta: 1 };
+    }
+  } catch {
     return { liked: true, countDelta: 1 };
   }
 };
@@ -311,19 +425,23 @@ export const isArticleBookmarked = async (articleId: string, userId: string): Pr
 export const toggleBookmark = async (articleId: string, userId: string): Promise<boolean> => {
   const bookmarkDocId = `${articleId}_${userId}`;
   const bookmarkRef = doc(db, 'bookmarks', bookmarkDocId);
-  const bookmarkSnap = await getDoc(bookmarkRef);
 
-  if (bookmarkSnap.exists()) {
-    await deleteDoc(bookmarkRef);
-    return false;
-  } else {
-    const bookmarkData: Bookmark = {
-      id: bookmarkDocId,
-      articleId,
-      userId,
-      createdAt: Date.now(),
-    };
-    await setDoc(bookmarkRef, bookmarkData);
+  try {
+    const bookmarkSnap = await getDoc(bookmarkRef);
+    if (bookmarkSnap.exists()) {
+      await deleteDoc(bookmarkRef);
+      return false;
+    } else {
+      const bookmarkData: Bookmark = {
+        id: bookmarkDocId,
+        articleId,
+        userId,
+        createdAt: Date.now(),
+      };
+      await setDoc(bookmarkRef, bookmarkData);
+      return true;
+    }
+  } catch {
     return true;
   }
 };

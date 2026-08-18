@@ -15,7 +15,7 @@ import {
   UserCheck,
   Sparkles,
 } from 'lucide-react';
-import { Article, UserProfile } from '../types';
+import { Article, ArticleStatus, UserProfile } from '../types';
 import {
   getArticleById,
   incrementViewCount,
@@ -24,6 +24,7 @@ import {
   toggleBookmark,
   isArticleBookmarked,
   deleteArticle,
+  updateArticle,
   getArticles,
 } from '../services/articleService';
 import { getUserProfile } from '../services/authService';
@@ -175,6 +176,18 @@ export const ArticleDetail: React.FC = () => {
     }
   };
 
+  const handleStatusChange = async (newStatus: ArticleStatus) => {
+    if (!article) return;
+    try {
+      await updateArticle(article.id, { status: newStatus });
+      setArticle((prev) => (prev ? { ...prev, status: newStatus } : null));
+      alert(`칼럼 상태가 [${newStatus}] 상태로 변경되었습니다.`);
+    } catch (err) {
+      console.error('Status change error:', err);
+      alert('상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleDeleteArticle = async () => {
     if (!article) return;
     setDeleting(true);
@@ -300,8 +313,8 @@ export const ArticleDetail: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto pb-20">
-      {/* Top back navigation */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Top back navigation & Admin Control Bar */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link
           to="/articles"
           className="inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-stone-900 transition-colors"
@@ -310,7 +323,22 @@ export const ArticleDetail: React.FC = () => {
         </Link>
 
         {canManage && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin && (
+              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg text-xs">
+                <span className="text-[11px] font-bold text-amber-900">상태:</span>
+                <select
+                  value={article.status || 'published'}
+                  onChange={(e) => handleStatusChange(e.target.value as ArticleStatus)}
+                  className="bg-white border border-amber-300 text-amber-950 font-bold text-[11px] rounded px-1.5 py-0.5"
+                >
+                  <option value="published">발행 (published)</option>
+                  <option value="draft">임시저장 (draft)</option>
+                  <option value="hidden">숨김 (hidden)</option>
+                  <option value="rejected">반려 (rejected)</option>
+                </select>
+              </div>
+            )}
             <Link
               to={`/articles/${article.id}/edit`}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700"
